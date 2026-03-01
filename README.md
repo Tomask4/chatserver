@@ -1,6 +1,6 @@
 # KANAAL — Chat Server
 
-Self-hosted WebSocket chat server for the [Kanaal](https://kanaal.chat) frontend.
+Self-hosted WebSocket chat server for the [Kanaal](https://tomask4.github.io/chatserver) frontend.
 
 ## Quick start
 
