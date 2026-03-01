@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="nl">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -32,7 +32,6 @@
     overflow: hidden;
   }
 
-  /* Noise overlay */
   body::before {
     content: '';
     position: fixed;
@@ -164,7 +163,6 @@
   /* ── MAIN APP ── */
   #app { display: flex; flex-direction: column; height: 100dvh; }
 
-  /* Header */
   header {
     display: flex;
     align-items: center;
@@ -238,7 +236,6 @@
 
   .btn-disconnect:hover { border-color: #ff6b6b; color: #ff6b6b; }
 
-  /* Users sidebar */
   .layout {
     display: flex;
     flex: 1;
@@ -300,7 +297,6 @@
     letter-spacing: 1px;
   }
 
-  /* Messages */
   .chat-area {
     flex: 1;
     display: flex;
@@ -373,7 +369,6 @@
     border-color: var(--border);
   }
 
-  /* System messages */
   .msg-system {
     align-self: center;
     font-family: 'IBM Plex Mono', monospace;
@@ -384,7 +379,6 @@
     letter-spacing: 0.5px;
   }
 
-  /* Typing indicator */
   #typing-area {
     padding: 8px 24px;
     min-height: 28px;
@@ -395,7 +389,6 @@
     flex-shrink: 0;
   }
 
-  /* Input bar */
   .input-bar {
     padding: 16px 24px;
     border-top: 1px solid var(--border);
@@ -442,17 +435,16 @@
   #send-btn:hover { opacity: 0.8; }
   #send-btn:active { transform: scale(0.95); }
 
-  /* ── UITLEG SECTIE ── */
+  /* ── INFO PANEL ── */
   #info-toggle {
     background: transparent;
-    border: none;
+    border: 1px solid var(--border);
     color: var(--muted);
     font-family: 'IBM Plex Mono', monospace;
     font-size: 11px;
     letter-spacing: 2px;
     cursor: pointer;
     padding: 6px 12px;
-    border: 1px solid var(--border);
     border-radius: var(--radius);
     transition: all 0.2s;
   }
@@ -597,7 +589,6 @@
   .step-text { font-size: 14px; line-height: 1.6; color: #aaa; }
   .step-text strong { color: var(--text); font-weight: 500; }
 
-  /* Animations */
   @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
   @keyframes slideIn { from { opacity: 0; transform: translateX(-8px); } to { opacity: 1; transform: translateX(0); } }
   @keyframes msgIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
@@ -606,7 +597,6 @@
     50% { opacity: 0.4; }
   }
 
-  /* Responsive */
   @media (max-width: 600px) {
     aside { display: none; }
     .info-content { padding: 32px 24px; }
@@ -619,20 +609,20 @@
 <div id="setup-screen">
   <div class="setup-card">
     <div class="logo"><div class="logo-dot"></div> KANAAL</div>
-    <h1>Open chat.<br>Jouw server.</h1>
-    <p class="subtitle">Verbind met een zelf-gehoste chatserver. Iedereen die verbinding maakt kan met elkaar praten in realtime.</p>
+    <h1>Open chat.<br>Your server.</h1>
+    <p class="subtitle">Connect to a self-hosted chat server. Everyone who joins can talk to each other in real time.</p>
 
-    <label for="username-input">Gebruikersnaam</label>
-    <input type="text" id="username-input" placeholder="bijv. Yannick" maxlength="24" autocomplete="off" />
+    <label for="username-input">Username</label>
+    <input type="text" id="username-input" placeholder="e.g. Alex" maxlength="24" autocomplete="off" />
 
     <label for="server-input">Server URL</label>
-    <input type="url" id="server-input" placeholder="ws://jouwserver.nl:3001" />
+    <input type="url" id="server-input" placeholder="ws://yourserver.com:3001" />
 
-    <button class="btn-primary" onclick="connect()">Verbinden →</button>
+    <button class="btn-primary" onclick="connect()">Connect →</button>
     <div id="setup-error"></div>
 
     <p style="margin-top:24px; font-size:12px; color: var(--muted); line-height:1.6">
-      Geen server? <span style="color: var(--accent2); cursor:pointer; text-decoration:underline" onclick="showInfo()">Bekijk de handleiding</span> om er zelf een op te zetten in &lt;5 minuten.
+      No server? <span style="color: var(--accent2); cursor:pointer; text-decoration:underline" onclick="showInfo()">Read the guide</span> to set one up yourself in under 5 minutes.
     </p>
   </div>
 </div>
@@ -647,10 +637,10 @@
     <div class="header-right">
       <div class="online-indicator">
         <div class="online-dot" id="status-dot"></div>
-        <span id="status-text">verbonden</span>
+        <span id="status-text">connected</span>
       </div>
-      <button id="info-toggle" onclick="showInfo()">HANDLEIDING</button>
-      <button class="btn-disconnect" onclick="disconnect()">Verbreken</button>
+      <button id="info-toggle" onclick="showInfo()">SETUP GUIDE</button>
+      <button class="btn-disconnect" onclick="disconnect()">Disconnect</button>
     </div>
   </header>
 
@@ -664,7 +654,7 @@
       <div id="messages"></div>
       <div id="typing-area"></div>
       <div class="input-bar">
-        <textarea id="msg-input" placeholder="Stuur een bericht…" rows="1"></textarea>
+        <textarea id="msg-input" placeholder="Send a message…" rows="1"></textarea>
         <button id="send-btn" onclick="sendMessage()">↑</button>
       </div>
     </div>
@@ -675,69 +665,69 @@
 <div id="info-panel">
   <div class="info-content">
     <button class="info-close" onclick="hideInfo()">×</button>
-    <div class="tag">SERVER HANDLEIDING</div>
-    <h2>Zet je eigen chatserver op</h2>
-    <p>Kanaal werkt met een simpele Node.js WebSocket-server die jij zelf host. Hieronder stap voor stap hoe je dit doet — ook als je nog nooit een server hebt opgezet.</p>
+    <div class="tag">SERVER SETUP GUIDE</div>
+    <h2>Host your own chat server</h2>
+    <p>Kanaal works with a simple Node.js WebSocket server that you host yourself. Follow the steps below — no prior server experience needed.</p>
 
-    <h3>Vereisten</h3>
+    <h3>Requirements</h3>
     <div class="step">
       <div class="step-num">✓</div>
-      <div class="step-text"><strong>Node.js ≥ 18</strong> — Download op <a href="https://nodejs.org" target="_blank" style="color: var(--accent2)">nodejs.org</a>. Controleer met <code style="color:var(--accent)">node --version</code></div>
+      <div class="step-text"><strong>Node.js ≥ 18</strong> — Download at <a href="https://nodejs.org" target="_blank" style="color: var(--accent2)">nodejs.org</a>. Verify with <code style="color:var(--accent)">node --version</code></div>
     </div>
     <div class="step">
       <div class="step-num">✓</div>
-      <div class="step-text"><strong>Een server of VPS</strong> — Je kan starten op je eigen computer (localhost), of host op Railway, Render, DigitalOcean, etc.</div>
+      <div class="step-text"><strong>A server or VPS</strong> — Start on your own machine (localhost), or host on Railway, Render, DigitalOcean, etc.</div>
     </div>
 
-    <h3>Installatie</h3>
+    <h3>Installation</h3>
 
     <div class="step">
       <div class="step-num">1</div>
-      <div class="step-text"><strong>Clone de repository</strong></div>
+      <div class="step-text"><strong>Clone the repository</strong></div>
     </div>
     <div class="code-block">
-      <button class="copy-btn" onclick="copyCode(this)">kopieer</button>
+      <button class="copy-btn" onclick="copyCode(this)">copy</button>
       git clone https://github.com/kanaal-chat/server<br>
       cd server
     </div>
 
     <div class="step">
       <div class="step-num">2</div>
-      <div class="step-text"><strong>Installeer afhankelijkheden</strong></div>
+      <div class="step-text"><strong>Install dependencies</strong></div>
     </div>
     <div class="code-block">
-      <button class="copy-btn" onclick="copyCode(this)">kopieer</button>
+      <button class="copy-btn" onclick="copyCode(this)">copy</button>
       npm install
     </div>
 
     <div class="step">
       <div class="step-num">3</div>
-      <div class="step-text"><strong>Start de server</strong> (standaard poort 3001)</div>
+      <div class="step-text"><strong>Start the server</strong> (default port 3001)</div>
     </div>
     <div class="code-block">
-      <button class="copy-btn" onclick="copyCode(this)">kopieer</button>
+      <button class="copy-btn" onclick="copyCode(this)">copy</button>
       npm start<br>
-      <span class="comment"># Of met eigen poort:</span><br>
+      <span class="comment"># Or with a custom port:</span><br>
       PORT=8080 npm start
     </div>
 
     <div class="step">
       <div class="step-num">4</div>
-      <div class="step-text"><strong>Verbind!</strong> Vul in het verbindingsscherm in: <code style="color:var(--accent)">ws://jouw-ip:3001</code> — of <code style="color:var(--accent)">wss://</code> als je HTTPS gebruikt.</div>
+      <div class="step-text"><strong>Connect!</strong> Enter in the connection screen: <code style="color:var(--accent)">ws://your-ip:3001</code> — or <code style="color:var(--accent)">wss://</code> if you're using HTTPS.</div>
     </div>
 
-    <h3>Zelfstandig draaien (met pm2)</h3>
+    <h3>Run as a background service (pm2)</h3>
     <div class="code-block">
-      <button class="copy-btn" onclick="copyCode(this)">kopieer</button>
+      <button class="copy-btn" onclick="copyCode(this)">copy</button>
       npm install -g pm2<br>
       pm2 start server.js --name kanaal<br>
       pm2 save && pm2 startup
     </div>
 
-    <h3>Server code (server.js)</h3>
-    <p>Wil je de server zelf bouwen in plaats van clonen? Hier is de volledige code:</p>
+    <h3>Full server code (server.js)</h3>
+    <p>Want to build the server yourself instead of cloning? Here's the complete code:</p>
     <div class="code-block" style="white-space:pre; line-height:1.6; font-size:12px">
-<button class="copy-btn" onclick="copyCode(this)">kopieer</button><span class="comment">// server.js — Kanaal Chat Server
+<button class="copy-btn" onclick="copyCode(this)">copy</button><span class="comment">// server.js — Kanaal Chat Server
 // npm install ws</span>
 const WebSocket = require('ws');
 const PORT = process.env.PORT || 3001;
@@ -771,7 +761,7 @@ wss.on('connection', (ws) => {
       clients.set(ws, user);
 
       ws.send(JSON.stringify({ type: 'welcome', name, color, users: userList() }));
-      broadcast({ type: 'system', text: `${name} is verbonden` }, ws);
+      broadcast({ type: 'system', text: `${name} joined the chat` }, ws);
       broadcast({ type: 'users', users: userList() });
 
     } else if (msg.type === 'message' && user) {
@@ -793,20 +783,20 @@ wss.on('connection', (ws) => {
   ws.on('close', () => {
     if (user) {
       clients.delete(ws);
-      broadcast({ type: 'system', text: `${user.name} heeft de chat verlaten` });
+      broadcast({ type: 'system', text: `${user.name} left the chat` });
       broadcast({ type: 'users', users: userList() });
     }
   });
 });
 
-console.log(`Kanaal server draait op poort ${PORT}`);</div>
+console.log(`Kanaal server running on port ${PORT}`);</div>
 
-    <h3>Omgevingsvariabelen</h3>
+    <h3>Environment variables</h3>
     <div class="code-block">
-      PORT=3001 &nbsp;<span class="comment"># Poort (standaard 3001)</span>
+      PORT=3001 &nbsp;<span class="comment"># Port to listen on (default 3001)</span>
     </div>
 
-    <p style="margin-top:8px">Voor HTTPS/WSS heb je een reverse proxy nodig (nginx, Caddy) of gebruik een platform als <a href="https://railway.app" target="_blank" style="color:var(--accent2)">Railway</a> of <a href="https://render.com" target="_blank" style="color:var(--accent2)">Render</a> — die regelen SSL automatisch.</p>
+    <p style="margin-top:8px">For HTTPS/WSS you need a reverse proxy (nginx, Caddy) or use a platform like <a href="https://railway.app" target="_blank" style="color:var(--accent2)">Railway</a> or <a href="https://render.com" target="_blank" style="color:var(--accent2)">Render</a> — they handle SSL automatically.</p>
   </div>
 </div>
 
@@ -818,14 +808,6 @@ let typingTimer = null;
 let typingUsers = new Set();
 let typingTimeout = {};
 
-// Color hashing for consistent user colors
-const colorPalette = ['#e8ff47','#47ffe8','#ff47e8','#ff8a47','#47a8ff','#ff6b6b','#b347ff'];
-function colorForName(name) {
-  let hash = 0;
-  for (let i = 0; i < name.length; i++) hash = (hash * 31 + name.charCodeAt(i)) >>> 0;
-  return colorPalette[hash % colorPalette.length];
-}
-
 function connect() {
   const nameInput = document.getElementById('username-input');
   const serverInput = document.getElementById('server-input');
@@ -834,10 +816,10 @@ function connect() {
   const name = nameInput.value.trim();
   const server = serverInput.value.trim();
 
-  if (!name) { showError('Voer een gebruikersnaam in.'); return; }
-  if (!server) { showError('Voer een server URL in.'); return; }
+  if (!name) { showError('Please enter a username.'); return; }
+  if (!server) { showError('Please enter a server URL.'); return; }
   if (!server.startsWith('ws://') && !server.startsWith('wss://')) {
-    showError('URL moet beginnen met ws:// of wss://'); return;
+    showError('URL must start with ws:// or wss://'); return;
   }
 
   errEl.style.display = 'none';
@@ -846,7 +828,7 @@ function connect() {
   try {
     ws = new WebSocket(server);
   } catch(e) {
-    showError('Ongeldige URL: ' + e.message);
+    showError('Invalid URL: ' + e.message);
     return;
   }
 
@@ -866,11 +848,11 @@ function connect() {
 
   ws.addEventListener('close', () => {
     setStatus(false);
-    addSystemMsg('Verbinding verbroken.');
+    addSystemMsg('Connection lost.');
   });
 
   ws.addEventListener('error', () => {
-    showError('Kon niet verbinden. Controleer de URL en of de server draait.');
+    showError('Could not connect. Check the URL and make sure the server is running.');
   });
 }
 
@@ -878,18 +860,14 @@ function handleMessage(msg) {
   if (msg.type === 'welcome') {
     myColor = msg.color;
     updateUsers(msg.users);
-    addSystemMsg('Verbonden met de server. Welkom, ' + msg.name + '!');
-
+    addSystemMsg('Connected to server. Welcome, ' + msg.name + '!');
   } else if (msg.type === 'message') {
     clearTyping(msg.name);
     addMessage(msg.name, msg.color, msg.text, msg.time, msg.name === myName);
-
   } else if (msg.type === 'system') {
     addSystemMsg(msg.text);
-
   } else if (msg.type === 'users') {
     updateUsers(msg.users);
-
   } else if (msg.type === 'typing') {
     showTyping(msg.name);
   }
@@ -901,7 +879,7 @@ function addMessage(name, color, text, time, isOwn) {
   div.className = 'msg ' + (isOwn ? 'own' : 'other');
 
   const t = new Date(time);
-  const timeStr = t.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' });
+  const timeStr = t.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
 
   div.innerHTML = `
     <div class="msg-header">
@@ -936,7 +914,7 @@ function updateUsers(users) {
         ${escHtml(u.name.charAt(0).toUpperCase())}
       </div>
       <span class="user-name">${escHtml(u.name)}</span>
-      ${u.name === myName ? '<span class="user-you">jij</span>' : ''}
+      ${u.name === myName ? '<span class="user-you">you</span>' : ''}
     `;
     list.appendChild(item);
   });
@@ -960,7 +938,7 @@ function renderTyping() {
   const others = [...typingUsers].filter(n => n !== myName);
   if (others.length === 0) { el.textContent = ''; return; }
   const names = others.join(', ');
-  el.textContent = names + (others.length === 1 ? ' typt…' : ' typen…');
+  el.textContent = names + (others.length === 1 ? ' is typing…' : ' are typing…');
 }
 
 function sendMessage() {
@@ -982,7 +960,7 @@ function disconnect() {
 
 function setStatus(online) {
   document.getElementById('status-dot').className = 'online-dot' + (online ? '' : ' offline');
-  document.getElementById('status-text').textContent = online ? 'verbonden' : 'verbroken';
+  document.getElementById('status-text').textContent = online ? 'connected' : 'disconnected';
 }
 
 function showError(msg) {
@@ -1004,14 +982,13 @@ function hideInfo() { document.getElementById('info-panel').classList.remove('op
 
 function copyCode(btn) {
   const block = btn.closest('.code-block');
-  const text = block.textContent.replace('kopieer','').trim();
+  const text = block.textContent.replace('copy','').replace('copied!','').trim();
   navigator.clipboard.writeText(text).then(() => {
-    btn.textContent = 'gekopieerd!';
-    setTimeout(() => btn.textContent = 'kopieer', 2000);
+    btn.textContent = 'copied!';
+    setTimeout(() => btn.textContent = 'copy', 2000);
   });
 }
 
-// Input auto-resize + enter to send
 document.addEventListener('DOMContentLoaded', () => {
   const input = document.getElementById('msg-input');
   input.addEventListener('keydown', (e) => {
@@ -1031,12 +1008,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // ESC closes info panel
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') hideInfo();
   });
 
-  // Click outside info content closes it
   document.getElementById('info-panel').addEventListener('click', (e) => {
     if (e.target === document.getElementById('info-panel')) hideInfo();
   });
