@@ -687,8 +687,8 @@
     </div>
     <div class="code-block">
       <button class="copy-btn" onclick="copyCode(this)">copy</button>
-      git clone https://github.com/Tomask4/chatserverbackend<br>
-      cd chatserverbackend
+      git clone https://github.com/kanaal-chat/server<br>
+      cd server
     </div>
 
     <div class="step">
@@ -820,6 +820,15 @@ function connect() {
   if (!server) { showError('Please enter a server URL.'); return; }
   if (!server.startsWith('ws://') && !server.startsWith('wss://')) {
     showError('URL must start with ws:// or wss://'); return;
+  }
+
+  // This page is on HTTPS — browsers block ws:// connections from HTTPS pages.
+  // The server must support wss:// (SSL). Host it on Railway or Render for free SSL.
+  if (location.protocol === 'https:' && server.startsWith('ws://')) {
+    const upgraded = server.replace('ws://', 'wss://');
+    serverInput.value = upgraded;
+    showError('⚠️ This page is on HTTPS, so you must use wss:// — not ws://. Your server needs SSL. Try hosting on Railway or Render (free). URL updated for you — try connecting again.');
+    return;
   }
 
   errEl.style.display = 'none';
