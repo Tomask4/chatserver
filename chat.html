@@ -1,0 +1,1046 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kanaal — Open Chat</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d0d0d;
+    --surface: #141414;
+    --border: #2a2a2a;
+    --accent: #e8ff47;
+    --accent2: #47ffe8;
+    --text: #e8e8e8;
+    --muted: #666;
+    --msg-own: #1a1f0d;
+    --msg-other: #161616;
+    --online: #47ff8a;
+    --radius: 2px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'IBM Plex Sans', sans-serif;
+    height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* Noise overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 1000;
+    opacity: 0.4;
+  }
+
+  /* ── SETUP SCREEN ── */
+  #setup-screen {
+    position: fixed;
+    inset: 0;
+    background: var(--bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 500;
+    animation: fadeIn 0.4s ease;
+  }
+
+  #setup-screen.hidden { display: none; }
+
+  .setup-card {
+    width: min(420px, 90vw);
+    border: 1px solid var(--border);
+    padding: 48px;
+    position: relative;
+  }
+
+  .setup-card::before {
+    content: '';
+    position: absolute;
+    top: -1px; left: -1px; right: -1px;
+    height: 3px;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+  }
+
+  .logo {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    color: var(--accent);
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    margin-bottom: 40px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .logo-dot {
+    width: 8px; height: 8px;
+    background: var(--accent);
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+  }
+
+  h1 {
+    font-size: 28px;
+    font-weight: 300;
+    line-height: 1.2;
+    margin-bottom: 8px;
+    letter-spacing: -0.5px;
+  }
+
+  .subtitle {
+    color: var(--muted);
+    font-size: 13px;
+    margin-bottom: 36px;
+    line-height: 1.6;
+  }
+
+  label {
+    display: block;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  input[type="text"], input[type="url"] {
+    width: 100%;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 14px;
+    padding: 12px 16px;
+    outline: none;
+    border-radius: var(--radius);
+    transition: border-color 0.2s;
+    margin-bottom: 20px;
+  }
+
+  input:focus { border-color: var(--accent); }
+  input::placeholder { color: var(--muted); }
+
+  .btn-primary {
+    width: 100%;
+    background: var(--accent);
+    color: #0d0d0d;
+    border: none;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    padding: 14px;
+    cursor: pointer;
+    border-radius: var(--radius);
+    transition: opacity 0.2s, transform 0.1s;
+    margin-top: 4px;
+  }
+
+  .btn-primary:hover { opacity: 0.85; }
+  .btn-primary:active { transform: scale(0.99); }
+
+  #setup-error {
+    color: #ff6b6b;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    margin-top: 12px;
+    display: none;
+  }
+
+  /* ── MAIN APP ── */
+  #app { display: flex; flex-direction: column; height: 100dvh; }
+
+  /* Header */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 24px;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+    background: var(--surface);
+  }
+
+  .header-left {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .header-logo {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--accent);
+    letter-spacing: 2px;
+  }
+
+  .server-info {
+    font-size: 12px;
+    color: var(--muted);
+    font-family: 'IBM Plex Mono', monospace;
+    max-width: 260px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .online-indicator {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  .online-dot {
+    width: 6px; height: 6px;
+    background: var(--online);
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+  }
+
+  .online-dot.offline { background: #ff6b6b; animation: none; }
+
+  .btn-disconnect {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 1px;
+    padding: 6px 12px;
+    cursor: pointer;
+    border-radius: var(--radius);
+    transition: all 0.2s;
+  }
+
+  .btn-disconnect:hover { border-color: #ff6b6b; color: #ff6b6b; }
+
+  /* Users sidebar */
+  .layout {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+  }
+
+  aside {
+    width: 200px;
+    border-right: 1px solid var(--border);
+    background: var(--surface);
+    flex-shrink: 0;
+    overflow-y: auto;
+    padding: 16px 0;
+  }
+
+  .aside-title {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    padding: 0 16px 12px;
+  }
+
+  .user-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    font-size: 13px;
+    color: var(--text);
+    transition: background 0.15s;
+    animation: slideIn 0.3s ease;
+  }
+
+  .user-item:hover { background: rgba(255,255,255,0.04); }
+
+  .user-avatar {
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px;
+    font-weight: 600;
+    flex-shrink: 0;
+    font-family: 'IBM Plex Mono', monospace;
+  }
+
+  .user-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    flex: 1;
+  }
+
+  .user-you {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    color: var(--accent);
+    letter-spacing: 1px;
+  }
+
+  /* Messages */
+  .chat-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  #messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    scroll-behavior: smooth;
+  }
+
+  #messages::-webkit-scrollbar { width: 4px; }
+  #messages::-webkit-scrollbar-track { background: transparent; }
+  #messages::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .msg {
+    display: flex;
+    flex-direction: column;
+    max-width: 72%;
+    animation: msgIn 0.25s cubic-bezier(0.2, 0, 0, 1);
+  }
+
+  .msg.own { align-self: flex-end; align-items: flex-end; }
+  .msg.other { align-self: flex-start; align-items: flex-start; }
+
+  .msg-header {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    margin-bottom: 4px;
+    padding: 0 4px;
+  }
+
+  .msg-name {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    font-weight: 500;
+  }
+
+  .msg-time {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+  }
+
+  .msg-bubble {
+    padding: 10px 14px;
+    border-radius: var(--radius);
+    font-size: 14px;
+    line-height: 1.5;
+    word-break: break-word;
+    position: relative;
+    border: 1px solid transparent;
+  }
+
+  .own .msg-bubble {
+    background: var(--msg-own);
+    border-color: rgba(232, 255, 71, 0.15);
+    color: var(--text);
+  }
+
+  .other .msg-bubble {
+    background: var(--msg-other);
+    border-color: var(--border);
+  }
+
+  /* System messages */
+  .msg-system {
+    align-self: center;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    padding: 8px 16px;
+    animation: fadeIn 0.3s ease;
+    letter-spacing: 0.5px;
+  }
+
+  /* Typing indicator */
+  #typing-area {
+    padding: 8px 24px;
+    min-height: 28px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.5px;
+    flex-shrink: 0;
+  }
+
+  /* Input bar */
+  .input-bar {
+    padding: 16px 24px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    gap: 12px;
+    align-items: flex-end;
+    background: var(--surface);
+    flex-shrink: 0;
+  }
+
+  #msg-input {
+    flex: 1;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 14px;
+    padding: 12px 16px;
+    outline: none;
+    border-radius: var(--radius);
+    resize: none;
+    transition: border-color 0.2s;
+    min-height: 44px;
+    max-height: 120px;
+    line-height: 1.4;
+  }
+
+  #msg-input:focus { border-color: var(--accent); }
+  #msg-input::placeholder { color: var(--muted); }
+
+  #send-btn {
+    background: var(--accent);
+    color: #0d0d0d;
+    border: none;
+    width: 44px; height: 44px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    border-radius: var(--radius);
+    flex-shrink: 0;
+    transition: opacity 0.2s, transform 0.1s;
+    font-size: 16px;
+  }
+
+  #send-btn:hover { opacity: 0.8; }
+  #send-btn:active { transform: scale(0.95); }
+
+  /* ── UITLEG SECTIE ── */
+  #info-toggle {
+    background: transparent;
+    border: none;
+    color: var(--muted);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 2px;
+    cursor: pointer;
+    padding: 6px 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    transition: all 0.2s;
+  }
+
+  #info-toggle:hover { color: var(--accent2); border-color: var(--accent2); }
+
+  #info-panel {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.85);
+    z-index: 400;
+    overflow-y: auto;
+    backdrop-filter: blur(4px);
+    padding: 48px 24px;
+  }
+
+  #info-panel.open { display: block; animation: fadeIn 0.3s ease; }
+
+  .info-content {
+    max-width: 680px;
+    margin: 0 auto;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 48px;
+    position: relative;
+  }
+
+  .info-content::before {
+    content: '';
+    position: absolute;
+    top: -1px; left: -1px; right: -1px;
+    height: 3px;
+    background: linear-gradient(90deg, var(--accent2), var(--accent));
+  }
+
+  .info-close {
+    position: absolute;
+    top: 20px; right: 20px;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    width: 32px; height: 32px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    border-radius: var(--radius);
+    font-size: 16px;
+    transition: all 0.2s;
+  }
+  .info-close:hover { border-color: var(--text); color: var(--text); }
+
+  .info-content h2 {
+    font-size: 22px;
+    font-weight: 300;
+    margin-bottom: 8px;
+    letter-spacing: -0.3px;
+  }
+
+  .info-content .tag {
+    display: inline-block;
+    background: rgba(71, 255, 232, 0.1);
+    color: var(--accent2);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 2px;
+    padding: 3px 8px;
+    border-radius: var(--radius);
+    margin-bottom: 24px;
+    border: 1px solid rgba(71, 255, 232, 0.2);
+  }
+
+  .info-content p {
+    color: #aaa;
+    font-size: 14px;
+    line-height: 1.7;
+    margin-bottom: 20px;
+  }
+
+  .info-content h3 {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    color: var(--accent);
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+    margin-top: 32px;
+  }
+
+  .code-block {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px 20px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    color: var(--accent2);
+    margin-bottom: 16px;
+    position: relative;
+    overflow-x: auto;
+  }
+
+  .code-block .comment { color: var(--muted); }
+
+  .copy-btn {
+    position: absolute;
+    top: 8px; right: 8px;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    padding: 3px 8px;
+    cursor: pointer;
+    border-radius: var(--radius);
+    transition: all 0.2s;
+  }
+  .copy-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  .step {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 16px;
+    padding: 16px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: rgba(255,255,255,0.02);
+  }
+
+  .step-num {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    color: var(--accent);
+    background: rgba(232, 255, 71, 0.1);
+    border: 1px solid rgba(232, 255, 71, 0.2);
+    width: 28px; height: 28px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    border-radius: var(--radius);
+    font-weight: 600;
+  }
+
+  .step-text { font-size: 14px; line-height: 1.6; color: #aaa; }
+  .step-text strong { color: var(--text); font-weight: 500; }
+
+  /* Animations */
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes slideIn { from { opacity: 0; transform: translateX(-8px); } to { opacity: 1; transform: translateX(0); } }
+  @keyframes msgIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  /* Responsive */
+  @media (max-width: 600px) {
+    aside { display: none; }
+    .info-content { padding: 32px 24px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- SETUP SCREEN -->
+<div id="setup-screen">
+  <div class="setup-card">
+    <div class="logo"><div class="logo-dot"></div> KANAAL</div>
+    <h1>Open chat.<br>Jouw server.</h1>
+    <p class="subtitle">Verbind met een zelf-gehoste chatserver. Iedereen die verbinding maakt kan met elkaar praten in realtime.</p>
+
+    <label for="username-input">Gebruikersnaam</label>
+    <input type="text" id="username-input" placeholder="bijv. Yannick" maxlength="24" autocomplete="off" />
+
+    <label for="server-input">Server URL</label>
+    <input type="url" id="server-input" placeholder="ws://jouwserver.nl:3001" />
+
+    <button class="btn-primary" onclick="connect()">Verbinden →</button>
+    <div id="setup-error"></div>
+
+    <p style="margin-top:24px; font-size:12px; color: var(--muted); line-height:1.6">
+      Geen server? <span style="color: var(--accent2); cursor:pointer; text-decoration:underline" onclick="showInfo()">Bekijk de handleiding</span> om er zelf een op te zetten in &lt;5 minuten.
+    </p>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div id="app" style="display:none">
+  <header>
+    <div class="header-left">
+      <span class="header-logo">KANAAL</span>
+      <span class="server-info" id="header-server"></span>
+    </div>
+    <div class="header-right">
+      <div class="online-indicator">
+        <div class="online-dot" id="status-dot"></div>
+        <span id="status-text">verbonden</span>
+      </div>
+      <button id="info-toggle" onclick="showInfo()">HANDLEIDING</button>
+      <button class="btn-disconnect" onclick="disconnect()">Verbreken</button>
+    </div>
+  </header>
+
+  <div class="layout">
+    <aside>
+      <div class="aside-title">Online — <span id="user-count">0</span></div>
+      <div id="user-list"></div>
+    </aside>
+
+    <div class="chat-area">
+      <div id="messages"></div>
+      <div id="typing-area"></div>
+      <div class="input-bar">
+        <textarea id="msg-input" placeholder="Stuur een bericht…" rows="1"></textarea>
+        <button id="send-btn" onclick="sendMessage()">↑</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- INFO PANEL -->
+<div id="info-panel">
+  <div class="info-content">
+    <button class="info-close" onclick="hideInfo()">×</button>
+    <div class="tag">SERVER HANDLEIDING</div>
+    <h2>Zet je eigen chatserver op</h2>
+    <p>Kanaal werkt met een simpele Node.js WebSocket-server die jij zelf host. Hieronder stap voor stap hoe je dit doet — ook als je nog nooit een server hebt opgezet.</p>
+
+    <h3>Vereisten</h3>
+    <div class="step">
+      <div class="step-num">✓</div>
+      <div class="step-text"><strong>Node.js ≥ 18</strong> — Download op <a href="https://nodejs.org" target="_blank" style="color: var(--accent2)">nodejs.org</a>. Controleer met <code style="color:var(--accent)">node --version</code></div>
+    </div>
+    <div class="step">
+      <div class="step-num">✓</div>
+      <div class="step-text"><strong>Een server of VPS</strong> — Je kan starten op je eigen computer (localhost), of host op Railway, Render, DigitalOcean, etc.</div>
+    </div>
+
+    <h3>Installatie</h3>
+
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-text"><strong>Clone de repository</strong></div>
+    </div>
+    <div class="code-block">
+      <button class="copy-btn" onclick="copyCode(this)">kopieer</button>
+      git clone https://github.com/kanaal-chat/server<br>
+      cd server
+    </div>
+
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-text"><strong>Installeer afhankelijkheden</strong></div>
+    </div>
+    <div class="code-block">
+      <button class="copy-btn" onclick="copyCode(this)">kopieer</button>
+      npm install
+    </div>
+
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-text"><strong>Start de server</strong> (standaard poort 3001)</div>
+    </div>
+    <div class="code-block">
+      <button class="copy-btn" onclick="copyCode(this)">kopieer</button>
+      npm start<br>
+      <span class="comment"># Of met eigen poort:</span><br>
+      PORT=8080 npm start
+    </div>
+
+    <div class="step">
+      <div class="step-num">4</div>
+      <div class="step-text"><strong>Verbind!</strong> Vul in het verbindingsscherm in: <code style="color:var(--accent)">ws://jouw-ip:3001</code> — of <code style="color:var(--accent)">wss://</code> als je HTTPS gebruikt.</div>
+    </div>
+
+    <h3>Zelfstandig draaien (met pm2)</h3>
+    <div class="code-block">
+      <button class="copy-btn" onclick="copyCode(this)">kopieer</button>
+      npm install -g pm2<br>
+      pm2 start server.js --name kanaal<br>
+      pm2 save && pm2 startup
+    </div>
+
+    <h3>Server code (server.js)</h3>
+    <p>Wil je de server zelf bouwen in plaats van clonen? Hier is de volledige code:</p>
+    <div class="code-block" style="white-space:pre; line-height:1.6; font-size:12px">
+<button class="copy-btn" onclick="copyCode(this)">kopieer</button><span class="comment">// server.js — Kanaal Chat Server
+// npm install ws</span>
+const WebSocket = require('ws');
+const PORT = process.env.PORT || 3001;
+const wss = new WebSocket.Server({ port: PORT });
+
+const clients = new Map(); <span class="comment">// ws → { name, color }</span>
+const COLORS = ['#e8ff47','#47ffe8','#ff47e8','#ff8a47','#47a8ff'];
+
+function broadcast(msg, except = null) {
+  const data = JSON.stringify(msg);
+  for (const [ws] of clients)
+    if (ws !== except && ws.readyState === WebSocket.OPEN)
+      ws.send(data);
+}
+
+function userList() {
+  return [...clients.values()].map(u => ({ name: u.name, color: u.color }));
+}
+
+wss.on('connection', (ws) => {
+  let user = null;
+
+  ws.on('message', (raw) => {
+    let msg;
+    try { msg = JSON.parse(raw); } catch { return; }
+
+    if (msg.type === 'join') {
+      const name = String(msg.name || 'Anon').trim().slice(0, 24);
+      const color = COLORS[clients.size % COLORS.length];
+      user = { name, color };
+      clients.set(ws, user);
+
+      ws.send(JSON.stringify({ type: 'welcome', name, color, users: userList() }));
+      broadcast({ type: 'system', text: `${name} is verbonden` }, ws);
+      broadcast({ type: 'users', users: userList() });
+
+    } else if (msg.type === 'message' && user) {
+      const text = String(msg.text || '').trim().slice(0, 2000);
+      if (!text) return;
+      broadcast({
+        type: 'message',
+        name: user.name,
+        color: user.color,
+        text,
+        time: Date.now()
+      });
+
+    } else if (msg.type === 'typing' && user) {
+      broadcast({ type: 'typing', name: user.name }, ws);
+    }
+  });
+
+  ws.on('close', () => {
+    if (user) {
+      clients.delete(ws);
+      broadcast({ type: 'system', text: `${user.name} heeft de chat verlaten` });
+      broadcast({ type: 'users', users: userList() });
+    }
+  });
+});
+
+console.log(`Kanaal server draait op poort ${PORT}`);</div>
+
+    <h3>Omgevingsvariabelen</h3>
+    <div class="code-block">
+      PORT=3001 &nbsp;<span class="comment"># Poort (standaard 3001)</span>
+    </div>
+
+    <p style="margin-top:8px">Voor HTTPS/WSS heb je een reverse proxy nodig (nginx, Caddy) of gebruik een platform als <a href="https://railway.app" target="_blank" style="color:var(--accent2)">Railway</a> of <a href="https://render.com" target="_blank" style="color:var(--accent2)">Render</a> — die regelen SSL automatisch.</p>
+  </div>
+</div>
+
+<script>
+let ws = null;
+let myName = '';
+let myColor = '#e8ff47';
+let typingTimer = null;
+let typingUsers = new Set();
+let typingTimeout = {};
+
+// Color hashing for consistent user colors
+const colorPalette = ['#e8ff47','#47ffe8','#ff47e8','#ff8a47','#47a8ff','#ff6b6b','#b347ff'];
+function colorForName(name) {
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) hash = (hash * 31 + name.charCodeAt(i)) >>> 0;
+  return colorPalette[hash % colorPalette.length];
+}
+
+function connect() {
+  const nameInput = document.getElementById('username-input');
+  const serverInput = document.getElementById('server-input');
+  const errEl = document.getElementById('setup-error');
+
+  const name = nameInput.value.trim();
+  const server = serverInput.value.trim();
+
+  if (!name) { showError('Voer een gebruikersnaam in.'); return; }
+  if (!server) { showError('Voer een server URL in.'); return; }
+  if (!server.startsWith('ws://') && !server.startsWith('wss://')) {
+    showError('URL moet beginnen met ws:// of wss://'); return;
+  }
+
+  errEl.style.display = 'none';
+  myName = name;
+
+  try {
+    ws = new WebSocket(server);
+  } catch(e) {
+    showError('Ongeldige URL: ' + e.message);
+    return;
+  }
+
+  ws.addEventListener('open', () => {
+    ws.send(JSON.stringify({ type: 'join', name }));
+    document.getElementById('setup-screen').classList.add('hidden');
+    document.getElementById('app').style.display = 'flex';
+    document.getElementById('header-server').textContent = server;
+    setStatus(true);
+  });
+
+  ws.addEventListener('message', (e) => {
+    let msg;
+    try { msg = JSON.parse(e.data); } catch { return; }
+    handleMessage(msg);
+  });
+
+  ws.addEventListener('close', () => {
+    setStatus(false);
+    addSystemMsg('Verbinding verbroken.');
+  });
+
+  ws.addEventListener('error', () => {
+    showError('Kon niet verbinden. Controleer de URL en of de server draait.');
+  });
+}
+
+function handleMessage(msg) {
+  if (msg.type === 'welcome') {
+    myColor = msg.color;
+    updateUsers(msg.users);
+    addSystemMsg('Verbonden met de server. Welkom, ' + msg.name + '!');
+
+  } else if (msg.type === 'message') {
+    clearTyping(msg.name);
+    addMessage(msg.name, msg.color, msg.text, msg.time, msg.name === myName);
+
+  } else if (msg.type === 'system') {
+    addSystemMsg(msg.text);
+
+  } else if (msg.type === 'users') {
+    updateUsers(msg.users);
+
+  } else if (msg.type === 'typing') {
+    showTyping(msg.name);
+  }
+}
+
+function addMessage(name, color, text, time, isOwn) {
+  const msgs = document.getElementById('messages');
+  const div = document.createElement('div');
+  div.className = 'msg ' + (isOwn ? 'own' : 'other');
+
+  const t = new Date(time);
+  const timeStr = t.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' });
+
+  div.innerHTML = `
+    <div class="msg-header">
+      <span class="msg-name" style="color:${color}">${escHtml(name)}</span>
+      <span class="msg-time">${timeStr}</span>
+    </div>
+    <div class="msg-bubble">${escHtml(text).replace(/\n/g, '<br>')}</div>
+  `;
+
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+function addSystemMsg(text) {
+  const msgs = document.getElementById('messages');
+  const div = document.createElement('div');
+  div.className = 'msg-system';
+  div.textContent = '— ' + text + ' —';
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+function updateUsers(users) {
+  document.getElementById('user-count').textContent = users.length;
+  const list = document.getElementById('user-list');
+  list.innerHTML = '';
+  users.forEach(u => {
+    const item = document.createElement('div');
+    item.className = 'user-item';
+    item.innerHTML = `
+      <div class="user-avatar" style="background:${u.color}22; color:${u.color}">
+        ${escHtml(u.name.charAt(0).toUpperCase())}
+      </div>
+      <span class="user-name">${escHtml(u.name)}</span>
+      ${u.name === myName ? '<span class="user-you">jij</span>' : ''}
+    `;
+    list.appendChild(item);
+  });
+}
+
+function showTyping(name) {
+  typingUsers.add(name);
+  renderTyping();
+  clearTimeout(typingTimeout[name]);
+  typingTimeout[name] = setTimeout(() => clearTyping(name), 3000);
+}
+
+function clearTyping(name) {
+  typingUsers.delete(name);
+  clearTimeout(typingTimeout[name]);
+  renderTyping();
+}
+
+function renderTyping() {
+  const el = document.getElementById('typing-area');
+  const others = [...typingUsers].filter(n => n !== myName);
+  if (others.length === 0) { el.textContent = ''; return; }
+  const names = others.join(', ');
+  el.textContent = names + (others.length === 1 ? ' typt…' : ' typen…');
+}
+
+function sendMessage() {
+  const input = document.getElementById('msg-input');
+  const text = input.value.trim();
+  if (!text || !ws || ws.readyState !== WebSocket.OPEN) return;
+  ws.send(JSON.stringify({ type: 'message', text }));
+  input.value = '';
+  input.style.height = 'auto';
+}
+
+function disconnect() {
+  if (ws) ws.close();
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('setup-screen').classList.remove('hidden');
+  document.getElementById('messages').innerHTML = '';
+  document.getElementById('user-list').innerHTML = '';
+}
+
+function setStatus(online) {
+  document.getElementById('status-dot').className = 'online-dot' + (online ? '' : ' offline');
+  document.getElementById('status-text').textContent = online ? 'verbonden' : 'verbroken';
+}
+
+function showError(msg) {
+  const el = document.getElementById('setup-error');
+  el.textContent = msg;
+  el.style.display = 'block';
+}
+
+function escHtml(str) {
+  return String(str)
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;');
+}
+
+function showInfo() { document.getElementById('info-panel').classList.add('open'); }
+function hideInfo() { document.getElementById('info-panel').classList.remove('open'); }
+
+function copyCode(btn) {
+  const block = btn.closest('.code-block');
+  const text = block.textContent.replace('kopieer','').trim();
+  navigator.clipboard.writeText(text).then(() => {
+    btn.textContent = 'gekopieerd!';
+    setTimeout(() => btn.textContent = 'kopieer', 2000);
+  });
+}
+
+// Input auto-resize + enter to send
+document.addEventListener('DOMContentLoaded', () => {
+  const input = document.getElementById('msg-input');
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
+  });
+  input.addEventListener('input', () => {
+    input.style.height = 'auto';
+    input.style.height = Math.min(input.scrollHeight, 120) + 'px';
+
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      clearTimeout(typingTimer);
+      ws.send(JSON.stringify({ type: 'typing' }));
+      typingTimer = setTimeout(() => {}, 2000);
+    }
+  });
+
+  // ESC closes info panel
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') hideInfo();
+  });
+
+  // Click outside info content closes it
+  document.getElementById('info-panel').addEventListener('click', (e) => {
+    if (e.target === document.getElementById('info-panel')) hideInfo();
+  });
+});
+</script>
+</body>
+</html>
